@@ -91,17 +91,32 @@ class Piece {
 }
 
 class Tetromino {
-    shape: ReadonlyArray<Coor>
+    readonly letter: string
+    readonly shape: ReadonlyArray<Coor>
     readonly color: string
     height: number
     width: number
     pos: Coor
+ 
+    private tetrominoes = {
+        I: {shape: [[0, 0], [0, 1], [0, 2], [0, 3]], color: "cyan"},
+        J: {shape: [[0, 0], [0, 1], [1, 1], [2, 1]], color: "blue"},
+        L: {shape: [[2, 0], [0, 1], [1, 1], [2, 1]], color: "orange"},
+        O: {shape: [[0, 0], [1, 0], [0, 1], [1, 1]], color: "yellow"},
+        S: {shape: [[1, 0], [2, 0], [0, 1], [1, 1]], color: "#0FFF50"},
+        T: {shape: [[1, 0], [0, 1], [1, 1], [2, 1]], color: "purple"},
+        Z: {shape: [[0, 0], [1, 0], [1, 1], [1, 2]], color: "red"}
+    }
 
-    constructor(pos: Coor, shape: ReadonlyArray<Coor>, color: string, height: number, width: number) {
+    private getShape(letter: string) {
+        return this.tetrominoes[letter].shape;
+    }
+
+    constructor(pos: Coor, letter: string) {
+        this.letter = letter;
+        const { shape, color } = this.getShape(letter);
         this.shape = shape;
         this.color = color;
-        this.height = height;
-        this.width = width;
         this.pos = pos;
     }
     spawn() {
@@ -120,7 +135,7 @@ class Tetromino {
         }
         return true;
     }
-    checkTranslate(posOffset: Coor): ReadonlyArray<Coor> {
+    private checkTranslate(posOffset: Coor): ReadonlyArray<Coor> {
         return this.shape.map((currPos) => new Coor(currPos.x + posOffset.x, currPos.y + posOffset.y));
     }
     private tryMove(direction: Coor) {
@@ -142,21 +157,16 @@ class Tetromino {
     tryMoveRight() {
         return this.tryMove(new Coor(1, 0));
     }
+    tryRotate90() {
+        
+    }
 }
 
 // pieces are sets of coordinates that form a shape, 
 // starting from [0, 0] (top left of grid)
 //
 // TODO: write custom bounds check functions for each piece!
-const tetrominoes = {
-    I: {shape: [[0, 0], [0, 1], [0, 2], [0, 3]], color: "cyan"},
-    J: {shape: [[0, 0], [0, 1], [1, 1], [2, 1]], color: "blue"},
-    L: {shape: [[2, 0], [0, 1], [1, 1], [2, 1]], color: "orange"},
-    O: {shape: [[0, 0], [1, 0], [0, 1], [1, 1]], color: "yellow"},
-    S: {shape: [[1, 0], [2, 0], [0, 1], [1, 1]], color: "#0FFF50"},
-    T: {shape: [[1, 0], [0, 1], [1, 1], [2, 1]], color: "purple"},
-    Z: {shape: [[0, 0], [1, 0], [1, 1], [1, 2]], color: "red"}
-}
+
 
 function updateScore(newScore) {
     score.innerHTML = newScore;
