@@ -29,6 +29,21 @@ body {
     margin: auto;
 }
 
+.game-over {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 3;
+    color: white;
+    font-size: 32px;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
 .cell {
     height: 30px;
     width: 30px;

@@ -1,6 +1,9 @@
-const score = document.getElementsByClassName("score")[0];
-const level = document.getElementsByClassName("level")[0];
-const stage = document.getElementsByClassName("stage")[0];
+type HTMLElem = HTMLElement | null
+
+const score: HTMLElem = document.querySelector(".score");
+const level: HTMLElem = document.querySelector(".level");
+const stage: HTMLElem = document.querySelector(".stage");
+const gameOver: HTMLElem = document.querySelector(".game-over");
 
 const cellWidth = 30;   // width/height in pixels
 const stageWidth = 12;  // width in cells
@@ -10,14 +13,14 @@ type Coor = [number, number];
 
 class Cell {
     readonly coor: Coor;
-    readonly elem: HTMLElement | null;
+    readonly elem: HTMLElem;
 
     constructor(coor: Coor) {
         this.coor = coor;
         const [x, y] = coor;
         this.elem = document.querySelector(`[x='${x}'][y='${y}']`);
     }
-    getCell(): HTMLElement | null {
+    getCell(): HTMLElem {
         return this.elem;
     }
     isOccupied(): boolean {
@@ -37,13 +40,13 @@ class Cell {
 class Piece {
     readonly coor: Coor
     readonly color: string
-    readonly cell: HTMLElement | null
+    readonly cell: HTMLElem
 
     constructor(coor: Coor, color: string) {
         this.coor = coor;
         this.color = color;
 
-        const cell: HTMLElement | null = new Cell(coor).getCell();
+        const cell: HTMLElem = new Cell(coor).getCell();
         this.cell = cell;
     }
     spawn(active: boolean = false): boolean {
@@ -96,16 +99,28 @@ class Tetromino {
         this.shape = shape;
         this.color = color;
     }
+    trySpawn(origin: Coor) {
+        const [offset_x, offset_y] = origin;
+        const newShape = this.translate([offset_x - 1, offset_y - 1]);
+        for (let coor of newShape) {
+            const [x, y] = coor;
+            const cell = new Cell([x, y]);
+            if (cell.isOccupied()) {
+                return false;
+            }
+        }
+        return true;
+    }
     spawn(origin: Coor = [1, 1]) {
+        if (!this.trySpawn(origin)) {
+            return false;
+        }
         const [offset_x, offset_y] = origin;
         this.shape = this.translate([offset_x - 1, offset_y - 1]);
         for (let coor of this.shape) {
             const [x, y] = coor;
             const piece = new Piece([x, y], this.color);
-            const success = piece.spawn();
-            if (!success) {
-                return false;
-            }
+            piece.spawn();
         }
         return true;
     }
@@ -130,12 +145,10 @@ class Tetromino {
     }
     private tryMove(direction: Coor): boolean {
         const newShape = this.translate(direction);
-        console.log(`${this.shape} -> ${newShape}`)
         for (let coor of newShape) {
             const newCell = new Cell(coor);
             const inCurrShape = this.shape.find((c) => c[0] == coor[0] && c[1] == coor[1]);
             if (newCell.isOccupied() && !inCurrShape) {
-                console.log(coor);
                 return false;
             }
         }
@@ -170,14 +183,12 @@ class Tetromino {
         return this.move([1, 0]);
     }
     private rotate(direction: number): Coor[] {
-        const [midpoint_sum_x, midpoint_sum_y] = this.shape.reduce((acc, coor) => [
-            acc[0] + coor[0], 
-            acc[1] + coor[1]
-        ]);
-        const [midpoint_x, midpoint_y] = [
-            Math.floor(midpoint_sum_x / this.shape.length), 
-            Math.floor(midpoint_sum_y / this.shape.length)
-        ];
+        // Using midpoint results in shape moving faster or slower on turn
+        // const [midpoint_sum_x, midpoint_sum_y] = this.shape.reduce((acc, coor) => [
+        //     acc[0] + coor[0], 
+        //     acc[1] + coor[1]
+        // ]);
+        const [midpoint_x, midpoint_y] = this.shape[0];
         return this.shape.map((currPos) => {
             const [x, y] = currPos;
             const coor: Coor = [
@@ -193,7 +204,6 @@ class Tetromino {
             const newCell = new Cell(coor);
             const inCurrShape = this.shape.find((c) => c[0] == coor[0] && c[1] == coor[1]);
             if (newCell.isOccupied() && !inCurrShape) {
-                console.log(coor);
                 return false;
             }
         }
@@ -209,11 +219,9 @@ class Tetromino {
         if (!this.tryRotate(direction)) {
             return false;
         }
-        console.log(this.shape);
         this.destroy();
         this.shape = this.rotate(direction);
         this.spawn();
-        console.log(this.shape);
         return true;
     }
     rotateLeft(): boolean {
@@ -224,63 +232,126 @@ class Tetromino {
     }
 }
 
-function updateScore(newScore) {
-    score.innerHTML = newScore;
-}
+class Game {
+    score: number
+    level: number
+    activePiece: Tetromino
+    interval: number 
 
-function incrementLevel() {
-    let currLevel = parseInt(level.innerHTML);
-    level.innerHTML = `${currLevel + 1}`;
-}
+    private tetrominoes = ["I", "J", "L", "O", "S", "T", "Z"];
 
-function createCell(x, y) {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.setAttribute("x", x);
-    cell.setAttribute("y", y);
-    cell.setAttribute("status", "free");
-    cell.style.left = x * cellWidth + "px";
-    cell.style.top = y * cellWidth + "px";
-    stage.appendChild(cell);
-    return 0;
-}
+    constructor() {
+        this.score = 0;
+        this.level = 1;
+        this.activePiece = this.getTetromino();
+        this.interval = 1000;
 
-function createBorderCell(x, y) {
-    const cell = document.createElement("div");
-    cell.classList.add("cell");
-    cell.classList.add("border-cell");
-    cell.setAttribute("status", "occupied");
-    cell.style.left = x * cellWidth + "px";
-    cell.style.top = y * cellWidth + "px";
-    stage.appendChild(cell);
-    return 0;
-}
-
-function initStage() {
-    for (let x = 0; x < stageWidth; x++) {
-        for (let y = 0; y < stageHeight; y++) {
-            if (x == 0 || x == stageWidth - 1 || y == 0 || y == stageHeight - 1) {
-                createBorderCell(x, y);
-            } else {
-                createCell(x, y);
+        for (let x = 0; x < stageWidth; x++) {
+            for (let y = 0; y < stageHeight; y++) {
+                const border: boolean = (x == 0 || x == stageWidth - 1 || y == 0 || y == stageHeight - 1);
+                this.createCell([x, y], border);
             }
         }
     }
+
+    updateScore(newScore: number) {
+        if (score === null) {
+            return;
+        }
+        score.innerHTML = newScore.toString();
+        this.score = newScore;
+    }
+
+    incrementLevel() {
+        if (level === null) {
+            return;
+        }
+        let currLevel = parseInt(level.innerHTML);
+        level.innerHTML = `${currLevel + 1}`;
+        this.level += 1;
+        clearInterval(this.interval);
+        if (this.level % 10 == 0) {
+            this.interval = setInterval(() => this.move(), this.interval - 20)
+        }
+    }
+
+    createCell(coor: Coor, border: boolean = false) {
+        const [x, y] = coor;
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        if (border) {
+            cell.classList.add("border-cell");
+            cell.setAttribute("status", "occupied");
+        } else {
+            cell.setAttribute("status", "free");
+        }
+        cell.setAttribute("x", x.toString());
+        cell.setAttribute("y", y.toString());
+        cell.style.left = x * cellWidth + "px";
+        cell.style.top = y * cellWidth + "px";
+
+        if (stage === null) {
+            return;
+        }
+
+        stage.appendChild(cell);
+        return 0;
+    }
+
+    getTetromino() {
+        const randidx = Math.floor(Math.random() * this.tetrominoes.length)
+        return new Tetromino(this.tetrominoes[randidx]);
+    }
+
+    move() {
+        const status = this.activePiece.moveDown();
+        if (!status) {
+            this.activePiece = this.getTetromino();
+            const canSpawn = this.activePiece.trySpawn([5, 1]);
+            if (!canSpawn) {
+                clearInterval(this.interval);
+                window.removeEventListener("keydown", this.keypress);
+                if (gameOver === null) {
+                    return;
+                }
+                gameOver.style.display = "flex";
+            }
+            this.activePiece.spawn([5, 1]);
+        }
+    }
+
+    keypress = (event) => {
+        switch(event.key) {
+            case "ArrowLeft":
+                this.activePiece.moveLeft();
+                break;
+            case "ArrowRight":
+                this.activePiece.moveRight();
+                break;
+            case "ArrowDown":
+               this.activePiece.moveDown();
+                break;
+            case "ArrowUp":
+                let status = true;
+                do {
+                    status = this.activePiece.moveDown();
+                } while (status);
+                break;
+            case "z":
+                this.activePiece.rotateLeft();
+                break;
+            case "x":
+                this.activePiece.rotateRight();
+                break;
+        }
+    }
+
+    start() {
+        this.activePiece.spawn([5, 1]);
+        this.interval = setInterval(() => this.move(), this.interval);
+        window.addEventListener("keydown", this.keypress);
+    }
 }
 
-function spawnTetromino(t: Tetromino) { 
-    t.moveDown(); 
-}
-
-function start() {
-    console.log("Starting...");
-
-    initStage();
-
-    const J: Tetromino = new Tetromino("J");
-    J.spawn([1, 1]);
-    const T: Tetromino = new Tetromino("T");
-    T.spawn([1, 10]);
-    setInterval(() => spawnTetromino(J), 500);
-}
-window.addEventListener("load", start)
+const game = new Game();
+window.addEventListener("load", () => game.start());
