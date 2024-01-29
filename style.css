@@ -38,7 +38,7 @@ body {
     bottom: 0;
     z-index: 3;
     color: white;
-    font-size: 32px;
+    font-size: 200px;
     background-color: rgba(0, 0, 0, 0.5);
     justify-content: center;
     align-items: center;
@@ -61,5 +61,6 @@ body {
     height: 30px;
     width: 30px;
     position: absolute;
+    z-index: 2;
 }
 

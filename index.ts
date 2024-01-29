@@ -38,25 +38,33 @@ class Cell {
 }
 
 class Piece {
-    readonly coor: Coor
+    coor: Coor
     readonly color: string
-    readonly cell: HTMLElem
+    cell: HTMLElem
+    status: string
 
-    constructor(coor: Coor, color: string) {
+    constructor(coor: Coor, color: string = "", status: string = "occupied") {
         this.coor = coor;
-        this.color = color;
-
         const cell: HTMLElem = new Cell(coor).getCell();
         this.cell = cell;
+        if (color === "" && cell != null) {
+            this.color = cell.style.backgroundColor;
+        } else {
+            this.color = color; 
+        }
+        if (cell != null && status != "occupied") {
+            this.status = cell.getAttribute("status") || "";
+        } else {
+            this.status = status;
+        }
     }
-    spawn(active: boolean = false): boolean {
+    spawn(): boolean {
         const cell = this.cell;
         if (cell == null) {
             return false;
         }
         cell.classList.add("square");
-        cell.setAttribute("status", "occupied");
-        cell.setAttribute("active", active.toString());
+        cell.setAttribute("status", this.status);
         cell.style.backgroundColor = this.color;
         return true;
     }
@@ -69,6 +77,12 @@ class Piece {
         this.cell.setAttribute("status", "free");
 
         return true;
+    }
+    moveDown() {
+        this.destroy();
+        this.coor = [this.coor[0], this.coor[1] + 1];
+        this.cell = new Cell(this.coor).getCell();
+        this.spawn();
     }
 }
 
@@ -123,6 +137,15 @@ class Tetromino {
             piece.spawn();
         }
         return true;
+    }
+    forceSpawn(origin: Coor = [1, 1]) {
+        const [offset_x, offset_y] = origin;
+        this.shape = this.translate([offset_x - 1, offset_y - 1]);
+        for (let coor of this.shape) {
+            const [x, y] = coor;
+            const piece = new Piece([x, y], this.color);
+            piece.spawn();
+        }
     }
     destroy() {
         for (let coor of this.shape) {
@@ -184,11 +207,14 @@ class Tetromino {
     }
     private rotate(direction: number): Coor[] {
         // Using midpoint results in shape moving faster or slower on turn
-        // const [midpoint_sum_x, midpoint_sum_y] = this.shape.reduce((acc, coor) => [
-        //     acc[0] + coor[0], 
-        //     acc[1] + coor[1]
-        // ]);
-        const [midpoint_x, midpoint_y] = this.shape[0];
+        const [midpoint_sum_x, midpoint_sum_y] = this.shape.reduce((acc, coor) => [
+            acc[0] + coor[0], 
+            acc[1] + coor[1]
+        ]);
+        const [midpoint_x, midpoint_y] = [
+            Math.round(midpoint_sum_x / this.shape.length), 
+            Math.round(midpoint_sum_y / this.shape.length)
+        ];
         return this.shape.map((currPos) => {
             const [x, y] = currPos;
             const coor: Coor = [
@@ -248,7 +274,7 @@ class Game {
 
         for (let x = 0; x < stageWidth; x++) {
             for (let y = 0; y < stageHeight; y++) {
-                const border: boolean = (x == 0 || x == stageWidth - 1 || y == 0 || y == stageHeight - 1);
+                const border: boolean = (x == 0 || y == 0 || x == stageWidth - 1 || y == stageHeight - 1);
                 this.createCell([x, y], border);
             }
         }
@@ -271,7 +297,7 @@ class Game {
         this.level += 1;
         clearInterval(this.interval);
         if (this.level % 10 == 0) {
-            this.interval = setInterval(() => this.move(), this.interval - 20)
+            this.interval = setInterval(this.move, this.interval - 20)
         }
     }
 
@@ -303,12 +329,54 @@ class Game {
         return new Tetromino(this.tetrominoes[randidx]);
     }
 
-    move() {
+    clearLine(y: number) {
+        console.log(y);
+        for (let x = 1; x < stageWidth - 1; x++) {
+            const piece = new Piece([x, y]);
+            piece.destroy()
+        }
+        for (let row = y - 1; row >= 1; row--) {
+            for (let x = 1; x < stageWidth - 1; x++) {
+                const piece = new Piece([x, row], "", "n/a");
+                piece.moveDown();
+            }
+        }
+    }
+
+    clearLines() {
+        let rowsCleared = 0;
+        for (let row = stageHeight - 2; row >= 1;) {
+            let numOccupied = 0;
+            for (let x = 1; x < stageWidth - 1; x++) {
+                let cell = new Cell([x, row])
+                if (cell.isOccupied()) {
+                    numOccupied++;
+                }
+            }
+            if (numOccupied == stageWidth - 2) {
+                this.clearLine(row);
+                rowsCleared++;
+            } else {
+                row--;
+            }
+        }
+        return rowsCleared;
+    }
+
+    move = () => {
         const status = this.activePiece.moveDown();
+
+        // Piece placed
         if (!status) {
+            const linesCleared = this.clearLines();
+            this.updateScore(linesCleared * 10);
+
             this.activePiece = this.getTetromino();
-            const canSpawn = this.activePiece.trySpawn([5, 1]);
+            const canSpawn = this.activePiece.spawn([5, 1]);
+
+            // Game Over
             if (!canSpawn) {
+                // this.activePiece.forceSpawn([5, -1]);
                 clearInterval(this.interval);
                 window.removeEventListener("keydown", this.keypress);
                 if (gameOver === null) {
@@ -316,7 +384,6 @@ class Game {
                 }
                 gameOver.style.display = "flex";
             }
-            this.activePiece.spawn([5, 1]);
         }
     }
 
@@ -337,10 +404,10 @@ class Game {
                     status = this.activePiece.moveDown();
                 } while (status);
                 break;
-            case "z":
+            case "x":
                 this.activePiece.rotateLeft();
                 break;
-            case "x":
+            case "z":
                 this.activePiece.rotateRight();
                 break;
         }
@@ -348,7 +415,8 @@ class Game {
 
     start() {
         this.activePiece.spawn([5, 1]);
-        this.interval = setInterval(() => this.move(), this.interval);
+        this.move();
+        this.interval = setInterval(this.move, this.interval);
         window.addEventListener("keydown", this.keypress);
     }
 }
