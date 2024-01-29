@@ -3,6 +3,7 @@ type HTMLElem = HTMLElement | null
 const score: HTMLElem = document.querySelector(".score");
 const level: HTMLElem = document.querySelector(".level");
 const stage: HTMLElem = document.querySelector(".stage");
+const linesClearedDisplay: HTMLElem = document.querySelector(".lines-cleared");
 const gameOver: HTMLElem = document.querySelector(".game-over");
 
 const cellWidth = 30;   // width/height in pixels
@@ -310,13 +311,18 @@ class Game {
         if (level === null) {
             return;
         }
-        let currLevel = parseInt(level.innerHTML);
-        level.innerHTML = `${currLevel + 1}`;
-        this.level += 1;
+        this.level++;
+        level.innerHTML = `${this.level}`;
         clearInterval(this.interval);
         this.intervalTime /= 2;
-        console.log(this.intervalTime);
         this.interval = setInterval(this.move, this.intervalTime);
+    }
+    incrementlinesCleared() {
+        if (linesClearedDisplay === null) {
+            return;
+        }
+        this.totalLinesCleared++;
+        linesClearedDisplay.innerHTML = `${this.totalLinesCleared}`;
     }
 
     createCell(coor: Coor, border: boolean = false) {
@@ -358,7 +364,7 @@ class Game {
                 piece.moveDown();
             }
         }
-        this.totalLinesCleared++;
+        this.incrementlinesCleared();
     }
 
     clearLines() {
