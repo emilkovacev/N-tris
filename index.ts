@@ -262,7 +262,9 @@ class Game {
     score: number
     level: number
     activePiece: Tetromino
-    interval: number 
+    interval: number
+    intervalTime: number
+    totalLinesCleared: number
 
     private tetrominoes = ["I", "J", "L", "O", "S", "T", "Z"];
 
@@ -270,7 +272,8 @@ class Game {
         this.score = 0;
         this.level = 1;
         this.activePiece = this.getTetromino();
-        this.interval = 2000;
+        this.intervalTime = 1200;
+        this.totalLinesCleared = 0;
 
         for (let x = 0; x < stageWidth; x++) {
             for (let y = 0; y < stageHeight; y++) {
@@ -280,12 +283,27 @@ class Game {
         }
     }
 
-    updateScore(newScore: number) {
+    updateScore(linesCleared: number) {
+        let updatedScore = this.score;
+        switch(linesCleared) {
+            case 1:
+                updatedScore += 40 * (this.level + 1);
+                break;
+            case 2:
+                updatedScore += 100 * (this.level + 1);
+                break;
+            case 3:
+                updatedScore += 300 * (this.level + 1);
+                break;
+            case 4:
+                updatedScore += 1200 * (this.level + 1);
+                break;
+        }
         if (score === null) {
             return;
         }
-        score.innerHTML = newScore.toString();
-        this.score = newScore;
+        score.innerHTML = updatedScore.toString();
+        this.score = updatedScore;
     }
 
     incrementLevel() {
@@ -296,7 +314,9 @@ class Game {
         level.innerHTML = `${currLevel + 1}`;
         this.level += 1;
         clearInterval(this.interval);
-        this.interval = setInterval(this.move, this.interval - 5)
+        this.intervalTime -= 100 * this.level;
+        console.log(this.intervalTime);
+        this.interval = setInterval(this.move, this.intervalTime);
     }
 
     createCell(coor: Coor, border: boolean = false) {
@@ -328,7 +348,6 @@ class Game {
     }
 
     clearLine(y: number) {
-        console.log(y);
         for (let x = 1; x < stageWidth - 1; x++) {
             const piece = new Piece([x, y]);
             piece.destroy()
@@ -339,6 +358,7 @@ class Game {
                 piece.moveDown();
             }
         }
+        this.totalLinesCleared++;
     }
 
     clearLines() {
@@ -367,13 +387,9 @@ class Game {
         // Piece placed
         if (!status) {
             const linesCleared = this.clearLines();
-            if (linesCleared == 4) {
-                this.updateScore(this.score + 800);
-            } else {
-                this.updateScore(this.score + linesCleared * 100);
-            }
+            this.updateScore(linesCleared); 
 
-            if (this.score > Math.pow(10, this.level)) {
+            if (this.totalLinesCleared >= this.level * 10) {
                 this.incrementLevel();
             } 
 
@@ -421,7 +437,7 @@ class Game {
 
     start() {
         this.activePiece.spawn([5, 1]);
-        this.interval = setInterval(this.move, this.interval);
+        this.interval = setInterval(this.move, this.intervalTime);
         window.addEventListener("keydown", this.keypress);
     }
 }
