@@ -94,14 +94,19 @@ class Tetromino {
     height: number
     width: number
  
-    private tetrominoes = {
-        I: {shape: [[1, 1], [1, 2], [1, 3], [1, 4]], color: "cyan"},
-        J: {shape: [[1, 1], [1, 2], [2, 2], [3, 2]], color: "blue"},
-        L: {shape: [[3, 1], [1, 2], [2, 2], [3, 2]], color: "orange"},
-        O: {shape: [[1, 1], [2, 1], [1, 2], [2, 2]], color: "yellow"},
-        S: {shape: [[2, 1], [3, 1], [1, 2], [2, 2]], color: "#0FFF50"},
-        T: {shape: [[2, 1], [1, 2], [2, 2], [3, 2]], color: "purple"},
-        Z: {shape: [[1, 1], [2, 1], [2, 2], [3, 2]], color: "red"}
+    tetrominoes = {
+        F: {shape: [[2, 1], [3, 1], [1, 2], [2, 2], [2, 3]], color: "wheat"},
+        I: {shape: [[1, 1], [1, 2], [1, 3], [1, 4], [1, 5]], color: "salmon"},
+        L: {shape: [[1, 1], [1, 2], [1, 3], [1, 4], [2, 4]], color: "beige"},
+        N: {shape: [[2, 1], [2, 2], [2, 3], [1, 3], [1, 4]], color: "lightgreen"},
+        P: {shape: [[1, 1], [2, 1], [1, 2], [2, 2], [2, 3]], color: "darkgreen"},
+        T: {shape: [[1, 1], [2, 1], [3, 1], [2, 2], [2, 3]], color: "green"},
+        U: {shape: [[1, 1], [3, 1], [1, 2], [2, 2], [3, 2]], color: "turquoise"},
+        V: {shape: [[3, 1], [3, 2], [1, 3], [2, 3], [3, 3]], color: "blue"},
+        W: {shape: [[3, 1], [3, 2], [1, 3], [2, 3], [2, 2]], color: "rebeccapurple"},
+        X: {shape: [[2, 1], [1, 2], [2, 2], [3, 2], [2, 3]], color: "purple"},
+        Y: {shape: [[1, 1], [1, 2], [2, 2], [1, 3], [1, 4]], color: "plum"},
+        Z: {shape: [[1, 1], [2, 1], [2, 2], [2, 3], [3, 3]], color: "pink"}
     }
 
     private get(letter: string) {
@@ -113,6 +118,7 @@ class Tetromino {
         const { shape, color } = this.get(letter);
         this.shape = shape;
         this.color = color;
+        console.log(letter, color);
     }
     trySpawn(origin: Coor) {
         const [offset_x, offset_y] = origin;
@@ -267,7 +273,7 @@ class Game {
     intervalTime: number
     totalLinesCleared: number
 
-    private tetrominoes = ["I", "J", "L", "O", "S", "T", "Z"];
+    private tetrominoes = Object.keys(new Tetromino("I").tetrominoes);
 
     constructor() {
         this.score = 0;
