@@ -314,7 +314,7 @@ class Game {
         level.innerHTML = `${currLevel + 1}`;
         this.level += 1;
         clearInterval(this.interval);
-        this.intervalTime -= 100 * this.level;
+        this.intervalTime /= 2;
         console.log(this.intervalTime);
         this.interval = setInterval(this.move, this.intervalTime);
     }
