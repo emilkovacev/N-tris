@@ -100,7 +100,7 @@ class Tetromino {
         O: {shape: [[1, 1], [2, 1], [1, 2], [2, 2]], color: "yellow"},
         S: {shape: [[2, 1], [3, 1], [1, 2], [2, 2]], color: "#0FFF50"},
         T: {shape: [[2, 1], [1, 2], [2, 2], [3, 2]], color: "purple"},
-        Z: {shape: [[1, 1], [2, 1], [2, 2], [2, 3]], color: "red"}
+        Z: {shape: [[1, 1], [2, 1], [2, 2], [3, 2]], color: "red"}
     }
 
     private get(letter: string) {
@@ -270,7 +270,7 @@ class Game {
         this.score = 0;
         this.level = 1;
         this.activePiece = this.getTetromino();
-        this.interval = 1000;
+        this.interval = 2000;
 
         for (let x = 0; x < stageWidth; x++) {
             for (let y = 0; y < stageHeight; y++) {
@@ -296,9 +296,7 @@ class Game {
         level.innerHTML = `${currLevel + 1}`;
         this.level += 1;
         clearInterval(this.interval);
-        if (this.level % 10 == 0) {
-            this.interval = setInterval(this.move, this.interval - 20)
-        }
+        this.interval = setInterval(this.move, this.interval - 5)
     }
 
     createCell(coor: Coor, border: boolean = false) {
@@ -369,7 +367,15 @@ class Game {
         // Piece placed
         if (!status) {
             const linesCleared = this.clearLines();
-            this.updateScore(linesCleared * 10);
+            if (linesCleared == 4) {
+                this.updateScore(this.score + 800);
+            } else {
+                this.updateScore(this.score + linesCleared * 100);
+            }
+
+            if (this.score > Math.pow(10, this.level)) {
+                this.incrementLevel();
+            } 
 
             this.activePiece = this.getTetromino();
             const canSpawn = this.activePiece.spawn([5, 1]);
@@ -415,7 +421,6 @@ class Game {
 
     start() {
         this.activePiece.spawn([5, 1]);
-        this.move();
         this.interval = setInterval(this.move, this.interval);
         window.addEventListener("keydown", this.keypress);
     }
